@@ -92,7 +92,7 @@ def deal(command_id):
         # 保存操作
         cnt_max = cnt
         img = cv2.imread(out_path(cnt))
-        cv2.imwrite('img_src/origin.jpg', img)
+        cv2.imwrite(os.getcwd() + '\\static', img)
         cnt = 0
         cv2.imwrite(out_path(cnt), img)
         for id in range(1, cnt_max + 1):
