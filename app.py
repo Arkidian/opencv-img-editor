@@ -1,10 +1,10 @@
 import os
 
 import cv2
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from flask_uploads import UploadSet, configure_uploads, IMAGES,\
  patch_request_class
-from output import out_path , web_path
+from output import out_path , web_path , file_name
 from program import task
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ patch_request_class(app)  # 文件大小限制，默认为16MB
 
 # 存储的最开始的图片的名字 后面上传就会改变
 photo_name = 'Tsunami_by_hokusai_19th_century.jpg'
-photo_url =os.getcwd() + '\\static\\uploads\\' + 'Tsunami_by_hokusai_19th_century.jpg'
+app.config['PHOTO_URL'] =os.getcwd() + '\\static\\uploads\\' + 'Tsunami_by_hokusai_19th_century.jpg'
 # 现在的图片的版本
 app.config['cnt'] = 0
 
@@ -45,15 +45,17 @@ def upload_file():
         # app.name = filename
         app.photo_name = filename
         file_url = photos.url(filename)
-        app.photo_url = file_url
-        img = cv2.imread(photo_url)  # 根据路径读取一张图片
+        print(file_url)
+        app.config['PHOTO_URL'] = os.getcwd() + '\\static\\uploads\\' + filename
+        print(app.config['PHOTO_URL'] + 'photourl')
+        img = cv2.imread(app.config['PHOTO_URL'])  # 根据路径读取一张图片
         cv2.imwrite(out_path(0), img)
         print(file_url)
         return html + '<br><img src=' + file_url + '>'
     return html
 
 
-# 删除uploads文件夹
+# 删除uploads文件夹       （不用设置接口）
 @app.route('/delete_all')
 def del_all():
     ls = os.listdir(app.config['UPLOADED_PHOTOS_DEST'])
@@ -64,8 +66,8 @@ def del_all():
         else:
             os.remove(c_path)
 
-
-@app.route('/delete_file')
+# 用在delete_all里面，不用设置接口    （不用设置接口）
+@app.route('/delete_file/<path>')
 def del_file(path):
     if os.path.exists(path):
         os.remove(path)
@@ -74,7 +76,7 @@ def del_file(path):
 # 通过commmand_id来选择处理的方式，commmand_id具体内容再program.py里面找
 @app.route('/deal/<command_id>')
 def deal(command_id):
-    img = cv2.imread(photo_url)  # 根据路径读取一张图片
+    img = cv2.imread(app.config['PHOTO_URL'])  # 根据路径读取一张图片
 
     cmd = command_id
 
@@ -107,6 +109,12 @@ def deal(command_id):
         print(type(str_cnt))
         print(app.config['cnt'])
     return pure_html + web_path(app.config['cnt'])
+
+# 这个download会下载最新的照片
+@app.route('/download', methods=['POST','GET'])
+def download():
+    direct_path = os.getcwd() + '\\static\\uploads'
+    return send_from_directory(direct_path, file_name(app.config['cnt']), as_attachment=True)
 
 if __name__ == '__main__':
     app.run()
